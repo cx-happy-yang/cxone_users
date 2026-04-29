@@ -27,6 +27,7 @@ build/
 *.env
 config.ini
 config.json
+tenants.json
 
 # macOS
 .DS_Store

@@ -1,11 +1,11 @@
 # cxone_users
 
-Exports all users from a Checkmarx One (CxOne) tenant to a CSV file using the [CheckmarxPythonSDK](https://github.com/checkmarx-ltd/checkmarx-python-sdk).
+Exports all users from one or more Checkmarx One (CxOne) tenants to CSV files using the [CheckmarxPythonSDK](https://github.com/checkmarx-ltd/checkmarx-python-sdk). A separate CSV file is created for each tenant.
 
 ## Prerequisites
 
 - Python 3.11+
-- Access to a Checkmarx One tenant with sufficient permissions to list users (the `view-users` role)
+- Access to each CxOne tenant with sufficient permissions to list users (the `view-users` role)
 
 ## Setup
 
@@ -30,41 +30,49 @@ venv\Scripts\activate           # Windows
 pip install CheckmarxPythonSDK==1.8.1
 ```
 
-### 4. Configure credentials
+### 4. Configure tenants
 
-The SDK reads configuration from `~/.Checkmarx/config.ini` by default. Create the file if it does not exist:
+Copy the example config and fill in your credentials:
 
 ```bash
-mkdir -p ~/.Checkmarx
-touch ~/.Checkmarx/config.ini
+cp tenants.json.example tenants.json
 ```
 
-Add a `[CxOne]` section with your tenant details:
+`tenants.json` is a JSON array — add one object per tenant:
 
-```ini
-[CxOne]
-access_control_url = https://<region>.iam.checkmarx.net
-server             = https://<region>.ast.checkmarx.net
-tenant_name        = <your-tenant-name>
-grant_type         = refresh_token
-client_id          = ast-app
-refresh_token      = <your-api-key>
-timeout            = 120
+```json
+[
+  {
+    "access_control_url": "https://sng.iam.checkmarx.net",
+    "server": "https://sng.ast.checkmarx.net",
+    "tenant_name": "my-tenant",
+    "grant_type": "refresh_token",
+    "client_id": "ast-app",
+    "refresh_token": "<api-key>",
+    "timeout": 120
+  }
+]
 ```
 
-| Field                | Description                                                                 |
-|----------------------|-----------------------------------------------------------------------------|
-| `access_control_url` | IAM base URL for your region (e.g. `https://sng.iam.checkmarx.net`)        |
-| `server`             | API base URL for your region (e.g. `https://sng.ast.checkmarx.net`)        |
-| `tenant_name`        | Your CxOne tenant name                                                      |
-| `grant_type`         | Authentication method — use `refresh_token` for API key auth                |
-| `client_id`          | OAuth client ID — `ast-app` for standard CxOne access                      |
-| `refresh_token`      | Your CxOne API key (generated from the CxOne portal under **Access Management > API Keys**) |
-| `timeout`            | HTTP request timeout in seconds                                             |
+| Field                | Required | Description                                                                                      |
+|----------------------|----------|--------------------------------------------------------------------------------------------------|
+| `tenant_name`        | Yes      | Your CxOne tenant name                                                                           |
+| `access_control_url` | Yes      | IAM base URL for your region (e.g. `https://sng.iam.checkmarx.net`)                             |
+| `server`             | Yes      | API base URL for your region (e.g. `https://sng.ast.checkmarx.net`)                             |
+| `grant_type`         | No       | Auth method — `refresh_token` (default) or `password`                                           |
+| `client_id`          | No       | OAuth client ID — defaults to `ast-app`                                                         |
+| `refresh_token`      | No*      | CxOne API key — generated from **Access Management > API Keys** in the portal                   |
+| `username`           | No*      | Username for `password` grant type                                                               |
+| `password`           | No*      | Password for `password` grant type                                                               |
+| `client_secret`      | No       | Client secret if required by your tenant                                                         |
+| `timeout`            | No       | HTTP request timeout in seconds (default: `60`)                                                  |
+| `verify`             | No       | TLS verification — `true` (default) or `false`                                                   |
+| `proxy`              | No       | HTTP/HTTPS proxy URL                                                                             |
+| `logging_level`      | No       | SDK log level: `DEBUG`, `INFO`, `WARNING`, `ERROR` (default: `INFO`)                            |
 
-> **Alternative auth:** You can use `grant_type = password` with `username` and `password` fields instead of a refresh token, but API key authentication is recommended for scripts.
+\* Provide either `refresh_token` **or** `username` + `password` depending on your `grant_type`.
 
-> **Alternative config locations:** You can also place credentials in `~/.Checkmarx/config.json`, set environment variables prefixed with `cxone_` (e.g. `cxone_tenant_name`), or pass `--cxone_tenant_name` on the command line.
+> **Note:** `tenants.json` is excluded from version control by `.gitignore` because it contains credentials. Never commit it.
 
 ## Running the script
 
@@ -72,37 +80,42 @@ timeout            = 120
 python main.py
 ```
 
-Sample output:
+Sample output for two tenants:
 
 ```
-Realm: <tenant-name>
-Total users: 42
-Fetched 42/42
-Written 42 users to users.csv
+Processing tenant: tenant-one
+  Total users: 42
+  Fetched 42/42
+  Written 42 users to users_tenant-one.csv
+
+Processing tenant: tenant-two
+  Total users: 17
+  Fetched 17/17
+  Written 17 users to users_tenant-two.csv
 ```
 
-The script will create `users.csv` in the current directory.
+One CSV file is created per tenant in the current directory.
 
 ## Output format
 
-The CSV contains one row per user with the following columns:
+Each CSV file contains one row per user with the following columns:
 
-| Column            | Description                                             |
-|-------------------|---------------------------------------------------------|
-| `id`              | Unique user ID (UUID)                                   |
-| `username`        | Login username                                          |
-| `first_name`      | First name                                              |
-| `last_name`       | Last name                                               |
-| `email`           | Email address                                           |
-| `last_login`      | Timestamp of the most recent login (ISO 8601)           |
-| `auth_provider`   | Authentication provider (`Application`, `SAML`, etc.)  |
-| `creation_date`   | Account creation timestamp (epoch milliseconds)         |
-| `is_enabled`      | Whether the account is active (`True` / `False`)        |
-| `is_mfa_configured` | Whether MFA is enabled (`True` / `False`)             |
-| `email_verified`  | Whether the email address has been verified             |
-| `roles`           | Pipe-separated list of assigned roles                   |
-| `groups`          | Pipe-separated list of assigned groups                  |
-| `required_actions`| Pipe-separated list of pending required actions         |
+| Column               | Description                                             |
+|----------------------|---------------------------------------------------------|
+| `id`                 | Unique user ID (UUID)                                   |
+| `username`           | Login username                                          |
+| `first_name`         | First name                                              |
+| `last_name`          | Last name                                               |
+| `email`              | Email address                                           |
+| `last_login`         | Timestamp of the most recent login (ISO 8601)           |
+| `auth_provider`      | Authentication provider (`Application`, `SAML`, etc.)  |
+| `creation_date`      | Account creation timestamp (epoch milliseconds)         |
+| `is_enabled`         | Whether the account is active (`True` / `False`)        |
+| `is_mfa_configured`  | Whether MFA is enabled (`True` / `False`)               |
+| `email_verified`     | Whether the email address has been verified             |
+| `roles`              | Pipe-separated list of assigned roles                   |
+| `groups`             | Pipe-separated list of assigned groups                  |
+| `required_actions`   | Pipe-separated list of pending required actions         |
 
 Multi-value fields (`roles`, `groups`, `required_actions`) use `|` as a delimiter so the file remains valid CSV.
 
@@ -110,8 +123,10 @@ Multi-value fields (`roles`, `groups`, `required_actions`) use `|` as a delimite
 
 ```
 cxone_users/
-├── main.py            # Main script
-├── requirementst.txt  # Pinned dependency
-├── venv/              # Virtual environment (not committed)
-└── users.csv          # Output file (generated at runtime)
+├── main.py                 # Main script
+├── tenants.json.example    # Example tenant config (copy to tenants.json)
+├── tenants.json            # Your tenant credentials (git-ignored)
+├── requirementst.txt       # Pinned dependency
+├── venv/                   # Virtual environment (not committed)
+└── users_<tenant>.csv      # Output files (generated at runtime, git-ignored)
 ```

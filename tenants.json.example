@@ -1,0 +1,20 @@
+[
+  {
+    "access_control_url": "https://sng.iam.checkmarx.net",
+    "server": "https://sng.ast.checkmarx.net",
+    "tenant_name": "tenant-one",
+    "grant_type": "refresh_token",
+    "client_id": "ast-app",
+    "refresh_token": "<api-key-for-tenant-one>",
+    "timeout": 120
+  },
+  {
+    "access_control_url": "https://eu.iam.checkmarx.net",
+    "server": "https://eu.ast.checkmarx.net",
+    "tenant_name": "tenant-two",
+    "grant_type": "refresh_token",
+    "client_id": "ast-app",
+    "refresh_token": "<api-key-for-tenant-two>",
+    "timeout": 120
+  }
+]
