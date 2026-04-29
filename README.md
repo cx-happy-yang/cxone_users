@@ -1,4 +1,4 @@
-# GetCxOneUsers
+# cxone_users
 
 Exports all users from a Checkmarx One (CxOne) tenant to a CSV file using the [CheckmarxPythonSDK](https://github.com/checkmarx-ltd/checkmarx-python-sdk).
 
@@ -13,7 +13,7 @@ Exports all users from a Checkmarx One (CxOne) tenant to a CSV file using the [C
 
 ```bash
 git clone <repo-url>
-cd GetCxOneUsers
+cd cxone_users
 ```
 
 ### 2. Create and activate a virtual environment
@@ -109,7 +109,7 @@ Multi-value fields (`roles`, `groups`, `required_actions`) use `|` as a delimite
 ## Project structure
 
 ```
-GetCxOneUsers/
+cxone_users/
 ├── main.py            # Main script
 ├── requirementst.txt  # Pinned dependency
 ├── venv/              # Virtual environment (not committed)
